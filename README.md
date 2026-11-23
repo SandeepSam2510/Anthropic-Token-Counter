@@ -5,7 +5,7 @@ Anthropic's official **Token Counting API**
 (`POST https://api.anthropic.com/v1/messages/count_tokens`), and compares the same text
 with **Google Gemini** and **OpenAI** to show which model uses the **fewest tokens**.
 
-**Live demo:** https://anthropictoken-counter.vercel.app/
+**Live demo:** https://sandeep-multi-llm-token-counter.vercel.app/
 
 ![Screenshot](docs/screenshot.png)
 
@@ -40,7 +40,7 @@ with **Google Gemini** and **OpenAI** to show which model uses the **fewest toke
 |---|---|---|
 | Anthropic | `POST https://api.anthropic.com/v1/messages/count_tokens` | `input_tokens` |
 | Google Gemini | `POST https://generativelanguage.googleapis.com/v1beta/models/{model}:countTokens` | `totalTokens` |
-| OpenAI | `POST https://api.openai.com/v1/responses/input_tokens` | `input_tokens` |
+| OpenAI | `POST https://api.openai.com/v1/responses/input_tokens` (via `/api/openai-count`, see below) | `input_tokens` |
 
 Token counting is free on all three, but each has its own rate limits. Counts are not perfectly
 "apples to apples": Anthropic counts a full user message (adds a few formatting tokens), Gemini
@@ -56,6 +56,12 @@ doesn't automatically mean cheaper, because price per token differs between prov
 - Each key is sent **only to its own provider** over HTTPS, always in a request **header**
   (`x-api-key`, `x-goog-api-key`, `Authorization: Bearer`) – never in the URL – with
   `credentials: 'omit'` and `cache: 'no-store'`.
+- **OpenAI exception:** OpenAI blocks direct browser (CORS) requests that carry an API key, so
+  the OpenAI request goes through this app's own tiny Vercel serverless function
+  [`api/openai-count.js`](api/openai-count.js). It forwards the request to
+  `api.openai.com/v1/responses/input_tokens` and returns the result. It does not store, cache or
+  log the key, only accepts `POST`, validates the input, and marks responses `no-store`.
+  During local development, Vite's dev-server proxy does the same job (see `vite.config.js`).
 - Inputs disable autocomplete / password-manager capture.
 
 **Why the browser calls the APIs directly:** the app has no backend, so for Anthropic it sends
@@ -75,6 +81,8 @@ pays for the keys, you would put a small server (proxy) in between instead.
 ## Project structure
 
 ```
+api/
+└── openai-count.js           # Vercel serverless function that forwards OpenAI requests
 src/
 ├── api/providers.js          # Anthropic / Gemini / OpenAI calls, timeout, error mapping, key checks
 ├── components/ProviderCard.jsx   # key + model inputs for one provider

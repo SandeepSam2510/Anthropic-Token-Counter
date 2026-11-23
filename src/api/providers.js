@@ -3,7 +3,9 @@
 // Security notes:
 // - API keys are passed in per call and never stored, cached or logged here.
 // - Keys are always sent in request HEADERS (never in the URL), directly from the
-//   browser to the provider over HTTPS. No other server ever sees them.
+//   browser to the provider over HTTPS. The only exception is OpenAI, which blocks
+//   browser requests: its key passes through this app's own serverless function
+//   (api/openai-count.js) on the way to api.openai.com and is never stored or logged.
 
 const TIMEOUT_MS = 20000;
 
@@ -53,7 +55,7 @@ export const PROVIDERS = [
     modelSuggestions: ['gpt-4o', 'gpt-4o-mini', 'gpt-4.1', 'gpt-5', 'gpt-5.5'],
     keyUrl: 'https://platform.openai.com/api-keys',
     docsUrl: 'https://developers.openai.com/api/docs/guides/token-counting',
-    note: 'POST /v1/responses/input_tokens – counts the input as the Responses API would.',
+    note: 'POST /v1/responses/input_tokens (via this app’s /api function) – counts the input as the Responses API would.',
   },
 ];
 
@@ -190,7 +192,10 @@ const COUNTERS = {
   async openai({ apiKey, model, text, signal }) {
     const data = await postJson(
       'OpenAI',
-      'https://api.openai.com/v1/responses/input_tokens',
+      // OpenAI blocks direct browser requests, so this goes through our own small
+      // serverless function (api/openai-count.js), which forwards it to
+      // https://api.openai.com/v1/responses/input_tokens without storing the key.
+      '/api/openai-count',
       { authorization: `Bearer ${apiKey}` },
       { model, input: text },
       signal,
