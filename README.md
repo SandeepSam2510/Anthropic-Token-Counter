@@ -4,7 +4,7 @@ A React + Vite web app that counts tokens for a set of predefined text samples u
 Anthropic's official **Token Counting API**
 (`POST https://api.anthropic.com/v1/messages/count_tokens`).
 
-**Live demo:** (https://anthropictoken-counter.vercel.app/)
+**Live demo:** https://anthropictoken-counter.vercel.app/
 
 ![Screenshot](docs/screenshot.png)
 
